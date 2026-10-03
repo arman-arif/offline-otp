@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modern 2FA & OTP Tool</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-8">
+  <div class="max-w-5xl mx-auto">
+    <!-- Header -->
+    <header class="flex items-center justify-between pb-6 border-b border-slate-800 mb-8">
+      <div>
+        <h1 class="text-2xl font-bold bg-gradient-to-r from-teal-400 to-blue-500 bg-clip-text text-transparent">
+          OTP Studio
+        </h1>
+        <p class="text-xs text-slate-400 mt-1">100% Client-side 2FA QR Generator & Live Simulator</p>
+      </div>
+      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-teal-950 text-teal-300 border border-teal-800">
+        Local / Offline Only
+      </span>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <!-- Input Panel -->
+      <div class="lg:col-span-7 space-y-5 bg-slate-800/60 p-6 rounded-2xl border border-slate-700/60 backdrop-blur">
+        <!-- Type Selection -->
+        <div class="grid grid-cols-2 gap-2 bg-slate-900/60 p-1 rounded-xl border border-slate-700/40 text-sm">
+          <button id="btn-totp" class="py-2 rounded-lg font-medium bg-teal-600 text-white transition">TOTP (Time-based)</button>
+          <button id="btn-hotp" class="py-2 rounded-lg font-medium text-slate-400 hover:text-white transition">HOTP (Counter-based)</button>
+        </div>
+
+        <!-- Issuer & Account -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Issuer</label>
+            <input type="text" id="issuer" placeholder="e.g. GitHub, Google" value="GitHub"
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-teal-500 transition">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Account Label</label>
+            <input type="text" id="account" placeholder="e.g. user@example.com" value="alex@example.com"
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-teal-500 transition">
+          </div>
+        </div>
+
+        <!-- Secret Input & Generation -->
+        <div>
+          <div class="flex justify-between items-center mb-1.5">
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Base32 Secret</label>
+            <div class="space-x-1">
+              <button onclick="generateRandomSecret(16)" class="text-xs px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-teal-300 font-mono transition">16 B</button>
+              <button onclick="generateRandomSecret(20)" class="text-xs px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-teal-300 font-mono transition">20 B</button>
+              <button onclick="generateRandomSecret(32)" class="text-xs px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-teal-300 font-mono transition">32 B</button>
+            </div>
+          </div>
+          <input type="text" id="secret" placeholder="JBSWY3DPEHPK3PXP" value="JBSWY3DPEHPK3PXP"
+            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm font-mono tracking-wider focus:outline-none focus:border-teal-500 transition uppercase">
+        </div>
+
+        <!-- Parameters -->
+        <div class="grid grid-cols-3 gap-3 pt-2">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Algorithm</label>
+            <select id="algorithm" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-teal-500">
+              <option value="SHA1" selected>SHA-1 (Default)</option>
+              <option value="SHA256">SHA-256</option>
+              <option value="SHA512">SHA-512</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Digits</label>
+            <select id="digits" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-teal-500">
+              <option value="6" selected>6 Digits</option>
+              <option value="8">8 Digits</option>
+            </select>
+          </div>
+          <div id="period-container">
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Period (s)</label>
+            <input type="number" id="period" value="30" min="5" max="300"
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-teal-500">
+          </div>
+          <div id="counter-container" class="hidden">
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Counter</label>
+            <input type="number" id="counter" value="0" min="0"
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-teal-500">
+          </div>
+        </div>
+
+        <!-- URI Output -->
+        <div class="pt-2">
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Generated otpauth:// URI</label>
+          <div class="flex gap-2">
+            <input type="text" id="otp-uri" readonly
+              class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-400 select-all focus:outline-none">
+            <button onclick="copyUri()" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-medium transition shrink-0">
+              Copy
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Preview & QR Card -->
+      <div class="lg:col-span-5 space-y-6">
+        <!-- Live Code Card -->
+        <div class="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl border border-slate-700/80 shadow-xl flex items-center justify-between">
+          <div>
+            <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold" id="preview-issuer">GitHub</div>
+            <div class="text-3xl font-mono font-bold tracking-widest text-teal-400 mt-1" id="live-otp">------</div>
+            <div class="text-xs text-slate-500 font-mono truncate max-w-[200px]" id="preview-account">alex@example.com</div>
+          </div>
+          <div class="relative flex items-center justify-center w-14 h-14">
+            <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+              <path class="text-slate-700" stroke-width="3" stroke="currentColor" fill="none"
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              <path id="countdown-circle" class="text-teal-400 transition-all duration-200 ease-linear"
+                stroke-dasharray="100, 100" stroke-width="3" stroke-linecap="round" stroke="currentColor" fill="none"
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+            </svg>
+            <span id="countdown-text" class="absolute text-xs font-bold text-slate-300">30</span>
+          </div>
+        </div>
+
+        <!-- QR Display -->
+        <div class="bg-slate-800/60 p-6 rounded-2xl border border-slate-700/60 flex flex-col items-center justify-center">
+          <div id="qrcode-box" class="bg-white p-4 rounded-xl shadow-inner mb-4"></div>
+          <div class="flex gap-2 w-full">
+            <button onclick="downloadQR()" class="flex-1 py-2.5 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-semibold shadow-md transition">
+              Download PNG
+            </button>
+            <button onclick="copyQRImage()" class="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-xs font-semibold transition">
+              Copy Image
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentType = 'totp';
+    let qrCodeInstance = null;
+
+    // Base32 Alphabet
+    const B32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+
+    function generateRandomSecret(length = 16) {
+      const array = new Uint8Array(length);
+      window.crypto.getRandomValues(array);
+      let secret = "";
+      for (let i = 0; i < length; i++) {
+        secret += B32_ALPHABET[array[i] % 32];
+      }
+      document.getElementById('secret').value = secret;
+      updateAll();
+    }
+
+    function base32ToBytes(base32) {
+      base32 = base32.replace(/=+$/, '').toUpperCase().replace(/[\s-]/g, '');
+      let bits = 0, value = 0, index = 0;
+      const output = new Uint8Array((base32.length * 5 / 8) | 0);
+      for (let i = 0; i < base32.length; i++) {
+        const val = B32_ALPHABET.indexOf(base32[i]);
+        if (val === -1) continue;
+        value = (value << 5) | val;
+        bits += 5;
+        if (bits >= 8) {
+          output[index++] = (value >>> (bits - 8)) & 255;
+          bits -= 8;
+        }
+      }
+      return output.subarray(0, index);
+    }
+
+    async function calculateTOTP(secretBase32, period, digits, algo) {
+      try {
+        const keyBytes = base32ToBytes(secretBase32);
+        if (keyBytes.length === 0) return "------";
+        const epoch = Math.floor(Date.now() / 1000);
+        const counter = Math.floor(epoch / period);
+        
+        const counterBuf = new ArrayBuffer(8);
+        const counterView = new DataView(counterBuf);
+        counterView.setBigUint64(0, BigInt(counter));
+
+        const hashAlgo = { 'SHA1': 'SHA-1', 'SHA256': 'SHA-256', 'SHA512': 'SHA-512' }[algo] || 'SHA-1';
+        const key = await window.crypto.subtle.importKey(
+          "raw", keyBytes, { name: "HMAC", hash: hashAlgo }, false, ["sign"]
+        );
+        const signature = await window.crypto.subtle.sign("HMAC", key, counterBuf);
+        const sigBytes = new Uint8Array(signature);
+        const offset = sigBytes[sigBytes.length - 1] & 0x0f;
+        const code = (
+          ((sigBytes[offset] & 0x7f) << 24) |
+          ((sigBytes[offset + 1] & 0xff) << 16) |
+          ((sigBytes[offset + 2] & 0xff) << 8) |
+          (sigBytes[offset + 3] & 0xff)
+        ) % (10 ** digits);
+
+        return code.toString().padStart(digits, '0');
+      } catch (e) {
+        return "------";
+      }
+    }
+
+    function buildOtpAuthUri() {
+      const issuer = encodeURIComponent(document.getElementById('issuer').value.trim());
+      const account = encodeURIComponent(document.getElementById('account').value.trim());
+      const secret = document.getElementById('secret').value.trim().replace(/[\s-]/g, '').toUpperCase();
+      const algorithm = document.getElementById('algorithm').value;
+      const digits = document.getElementById('digits').value;
+      const period = document.getElementById('period').value;
+      const counter = document.getElementById('counter').value;
+
+      const label = issuer ? `${issuer}:${account}` : account;
+      let uri = `otpauth://${currentType}/${label}?secret=${secret}`;
+      if (issuer) uri += `&issuer=${issuer}`;
+      if (algorithm !== 'SHA1') uri += `&algorithm=${algorithm}`;
+      if (digits !== '6') uri += `&digits=${digits}`;
+      if (currentType === 'totp' && period !== '30') uri += `&period=${period}`;
+      if (currentType === 'hotp') uri += `&counter=${counter}`;
+      return uri;
+    }
+
+    function updateAll() {
+      const uri = buildOtpAuthUri();
+      document.getElementById('otp-uri').value = uri;
+      document.getElementById('preview-issuer').textContent = document.getElementById('issuer').value || 'Service';
+      document.getElementById('preview-account').textContent = document.getElementById('account').value || '';
+
+      // Refresh QR
+      const container = document.getElementById('qrcode-box');
+      container.innerHTML = '';
+      qrCodeInstance = new QRCode(container, {
+        text: uri,
+        width: 190,
+        height: 190,
+        colorDark: "#0f172a",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+
+    async function tick() {
+      const period = parseInt(document.getElementById('period').value) || 30;
+      const now = Date.now() / 1000;
+      const remaining = period - (Math.floor(now) % period);
+      const percent = (remaining / period) * 100;
+
+      document.getElementById('countdown-text').textContent = remaining;
+      document.getElementById('countdown-circle').setAttribute('stroke-dasharray', `${percent}, 100`);
+
+      if (currentType === 'totp') {
+        const secret = document.getElementById('secret').value;
+        const digits = parseInt(document.getElementById('digits').value) || 6;
+        const algo = document.getElementById('algorithm').value;
+        const code = await calculateTOTP(secret, period, digits, algo);
+        document.getElementById('live-otp').textContent = code;
+      }
+    }
+
+    function copyUri() {
+      const input = document.getElementById('otp-uri');
+      navigator.clipboard.writeText(input.value);
+    }
+
+    function downloadQR() {
+      const img = document.querySelector('#qrcode-box img');
+      if (!img) return;
+      const a = document.createElement('a');
+      a.href = img.src;
+      a.download = `${document.getElementById('issuer').value || 'otp'}-2fa-qr.png`;
+      a.click();
+    }
+
+    async function copyQRImage() {
+      const img = document.querySelector('#qrcode-box img');
+      if (!img) return;
+      const res = await fetch(img.src);
+      const blob = await res.blob();
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    }
+
+    // Event Listeners
+    ['issuer', 'account', 'secret', 'algorithm', 'digits', 'period', 'counter'].forEach(id => {
+      document.getElementById(id).addEventListener('input', updateAll);
+    });
+
+    document.getElementById('btn-totp').addEventListener('click', () => {
+      currentType = 'totp';
+      document.getElementById('btn-totp').className = 'py-2 rounded-lg font-medium bg-teal-600 text-white transition';
+      document.getElementById('btn-hotp').className = 'py-2 rounded-lg font-medium text-slate-400 hover:text-white transition';
+      document.getElementById('period-container').classList.remove('hidden');
+      document.getElementById('counter-container').classList.add('hidden');
+      updateAll();
+    });
+
+    document.getElementById('btn-hotp').addEventListener('click', () => {
+      currentType = 'hotp';
+      document.getElementById('btn-hotp').className = 'py-2 rounded-lg font-medium bg-teal-600 text-white transition';
+      document.getElementById('btn-totp').className = 'py-2 rounded-lg font-medium text-slate-400 hover:text-white transition';
+      document.getElementById('period-container').classList.add('hidden');
+      document.getElementById('counter-container').classList.remove('hidden');
+      updateAll();
+    });
+
+    updateAll();
+    setInterval(tick, 1000);
+    tick();
+  </script>
+</body>
+</html>
