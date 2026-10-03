@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TOTP & HOTP Generator</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --border: #334155;
+      --danger: #ef4444;
+      --success: #22c55e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      max-width: 480px;
+      width: 100%;
+      padding: 2rem;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .tabs {
+      display: flex;
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 1.5rem;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 0.6rem;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: var(--card-bg);
+      color: var(--accent);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+    }
+
+    input, select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 0.65rem 0.85rem;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .secret-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .btn-sm {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--accent);
+      font-size: 0.75rem;
+      padding: 0.35rem 0.7rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-sm:hover {
+      background: rgba(56, 189, 248, 0.1);
+    }
+
+    .code-display-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      text-align: center;
+      margin-top: 1.5rem;
+      position: relative;
+    }
+
+    .otp-code {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 2.25rem;
+      font-weight: 700;
+      letter-spacing: 4px;
+      color: var(--accent);
+      cursor: pointer;
+      user-select: all;
+    }
+
+    .copy-hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.3rem;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 0.75rem;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: var(--accent);
+      width: 100%;
+      transition: width 1s linear;
+    }
+
+    .counter-controls {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .counter-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .counter-btn:hover {
+      border-color: var(--accent);
+    }
+
+    .primary-btn {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 1rem;
+      transition: background 0.2s;
+    }
+
+    .primary-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .error-msg {
+      color: var(--danger);
+      font-size: 0.8rem;
+      margin-top: 0.4rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>OTP Generator</h1>
+
+    <div class="tabs">
+      <button class="tab-btn active" id="tabTotp" onclick="switchMode('TOTP')">TOTP (Time-Based)</button>
+      <button class="tab-btn" id="tabHotp" onclick="switchMode('HOTP')">HOTP (Counter-Based)</button>
+    </div>
+
+    <!-- Common Secret Config -->
+    <div class="form-group">
+      <label for="secret">Base32 Secret Key</label>
+      <input type="text" id="secret" value="JBSWY3DPEHPK3PXP" placeholder="e.g. JBSWY3DPEHPK3PXP" spellcheck="false" />
+      <div id="secretError" class="error-msg">Invalid Base32 secret key.</div>
+      <div class="secret-actions">
+        <button class="btn-sm" onclick="generateRandomSecret()">Generate Random Secret</button>
+      </div>
+    </div>
+
+    <!-- Shared Settings -->
+    <div class="row">
+      <div class="form-group">
+        <label for="digits">Code Digits</label>
+        <select id="digits" onchange="renderCode()">
+          <option value="6" selected>6 Digits</option>
+          <option value="8">8 Digits</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="algorithm">Hash Algorithm</label>
+        <select id="algorithm" onchange="renderCode()">
+          <option value="SHA-1" selected>SHA-1 (Default)</option>
+          <option value="SHA-256">SHA-256</option>
+          <option value="SHA-512">SHA-512</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- TOTP Options -->
+    <div id="totpSection">
+      <div class="form-group">
+        <label for="period">Time Step (Seconds)</label>
+        <input type="number" id="period" value="30" min="5" max="300" onchange="renderCode()" />
+      </div>
+    </div>
+
+    <!-- HOTP Options -->
+    <div id="hotpSection" style="display: none;">
+      <div class="form-group">
+        <label for="counter">Counter Value</label>
+        <div class="counter-controls">
+          <button class="counter-btn" onclick="adjustCounter(-1)">-</button>
+          <input type="number" id="counter" value="0" min="0" onchange="renderCode()" />
+          <button class="counter-btn" onclick="adjustCounter(1)">+</button>
+        </div>
+      </div>
+      <button class="primary-btn" onclick="incrementAndGenerate()">Next OTP (Increment Counter)</button>
+    </div>
+
+    <!-- Output Box -->
+    <div class="code-display-box" onclick="copyCode()">
+      <div class="otp-code" id="otpDisplay">------</div>
+      <div class="copy-hint" id="copyHint">Click to copy</div>
+      <div class="progress-bar-container" id="progressContainer">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentMode = 'TOTP';
+    let timerInterval = null;
+
+    // Base32 Decoder (RFC 4648)
+    function base32ToUint8Array(base32) {
+      const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+      const clean = base32.replace(/[\s=-]/g, '').toUpperCase();
+      let bits = '';
+      for (let i = 0; i < clean.length; i++) {
+        const val = alphabet.indexOf(clean[i]);
+        if (val === -1) throw new Error('Invalid character in Base32 string');
+        bits += val.toString(2).padStart(5, '0');
+      }
+      const bytes = [];
+      for (let i = 0; i + 8 <= bits.length; i += 8) {
+        bytes.push(parseInt(bits.substr(i, 8), 2));
+      }
+      return new Uint8Array(bytes);
+    }
+
+    // Core HOTP computation (RFC 4226)
+    async function calculateHOTP(secretBase32, counter, digits, hashAlgo) {
+      const keyBytes = base32ToUint8Array(secretBase32);
+
+      // Pack counter into 8-byte big-endian DataView
+      const counterBuffer = new ArrayBuffer(8);
+      const view = new DataView(counterBuffer);
+      view.setBigUint64(0, BigInt(counter), false);
+
+      // Web Crypto HMAC
+      const cryptoKey = await window.crypto.subtle.importKey(
+        'raw',
+        keyBytes,
+        { name: 'HMAC', hash: { name: hashAlgo } },
+        false,
+        ['sign']
+      );
+
+      const signature = await window.crypto.subtle.sign('HMAC', cryptoKey, counterBuffer);
+      const hash = new Uint8Array(signature);
+
+      // Dynamic Truncation
+      const offset = hash[hash.length - 1] & 0x0f;
+      const binary =
+        ((hash[offset] & 0x7f) << 24) |
+        ((hash[offset + 1] & 0xff) << 16) |
+        ((hash[offset + 2] & 0xff) << 8) |
+        (hash[offset + 3] & 0xff);
+
+      const otp = (binary >>> 0) % (10 ** digits);
+      return otp.toString().padStart(digits, '0');
+    }
+
+    // Format code with a middle space for readability
+    function formatCode(code) {
+      const mid = Math.ceil(code.length / 2);
+      return code.slice(0, mid) + ' ' + code.slice(mid);
+    }
+
+    async function renderCode() {
+      const secret = document.getElementById('secret').value.trim();
+      const digits = parseInt(document.getElementById('digits').value, 10);
+      const algorithm = document.getElementById('algorithm').value;
+      const errorEl = document.getElementById('secretError');
+      const displayEl = document.getElementById('otpDisplay');
+
+      try {
+        errorEl.style.display = 'none';
+        let code = '';
+
+        if (currentMode === 'TOTP') {
+          const period = parseInt(document.getElementById('period').value, 10) || 30;
+          const epoch = Math.floor(Date.now() / 1000);
+          const counter = Math.floor(epoch / period);
+          code = await calculateHOTP(secret, counter, digits, algorithm);
+        } else {
+          const counter = parseInt(document.getElementById('counter').value, 10) || 0;
+          code = await calculateHOTP(secret, counter, digits, algorithm);
+        }
+
+        displayEl.textContent = formatCode(code);
+      } catch (err) {
+        errorEl.style.display = 'block';
+        displayEl.textContent = '------';
+      }
+    }
+
+    function switchMode(mode) {
+      currentMode = mode;
+      document.getElementById('tabTotp').classList.toggle('active', mode === 'TOTP');
+      document.getElementById('tabHotp').classList.toggle('active', mode === 'HOTP');
+      document.getElementById('totpSection').style.display = mode === 'TOTP' ? 'block' : 'none';
+      document.getElementById('hotpSection').style.display = mode === 'HOTP' ? 'block' : 'none';
+      document.getElementById('progressContainer').style.display = mode === 'TOTP' ? 'block' : 'none';
+      renderCode();
+    }
+
+    function adjustCounter(delta) {
+      const input = document.getElementById('counter');
+      const val = Math.max(0, (parseInt(input.value, 10) || 0) + delta);
+      input.value = val;
+      renderCode();
+    }
+
+    function incrementAndGenerate() {
+      adjustCounter(1);
+    }
+
+    function generateRandomSecret() {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+      const array = new Uint8Array(16);
+      window.crypto.getRandomValues(array);
+      let secret = '';
+      for (let i = 0; i < 16; i++) {
+        secret += chars[array[i] % chars.length];
+      }
+      document.getElementById('secret').value = secret;
+      renderCode();
+    }
+
+    function copyCode() {
+      const raw = document.getElementById('otpDisplay').textContent.replace(/\s+/g, '');
+      if (!raw || raw.includes('-')) return;
+
+      navigator.clipboard.writeText(raw).then(() => {
+        const hint = document.getElementById('copyHint');
+        hint.textContent = 'Copied to clipboard!';
+        hint.style.color = 'var(--success)';
+        setTimeout(() => {
+          hint.textContent = 'Click to copy';
+          hint.style.color = 'var(--text-muted)';
+        }, 1500);
+      });
+    }
+
+    function updateTotpProgress() {
+      if (currentMode !== 'TOTP') return;
+      const period = parseInt(document.getElementById('period').value, 10) || 30;
+      const epoch = Math.floor(Date.now() / 1000);
+      const remaining = period - (epoch % period);
+      const percent = (remaining / period) * 100;
+
+      const bar = document.getElementById('progressBar');
+      bar.style.width = percent + '%';
+
+      if (remaining === period || remaining === 1) {
+        renderCode();
+      }
+    }
+
+    document.getElementById('secret').addEventListener('input', renderCode);
+
+    // Initial setup
+    renderCode();
+    timerInterval = setInterval(updateTotpProgress, 1000);
+  </script>
+</body>
+</html>
