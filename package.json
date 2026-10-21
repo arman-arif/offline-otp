@@ -1,0 +1,23 @@
+{
+  "name": "offline-otp",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "dev": "serve -s .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arman-arif/offline-otp.git"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/arman-arif/offline-otp/issues"
+  },
+  "homepage": "https://github.com/arman-arif/offline-otp#readme",
+  "dependencies": {
+    "serve": "^14.2.6"
+  }
+}

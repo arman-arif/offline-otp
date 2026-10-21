@@ -1,5 +1,6 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -21,7 +22,8 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     body {
@@ -88,7 +90,8 @@
       margin-bottom: 0.4rem;
     }
 
-    input, select {
+    input,
+    select {
       width: 100%;
       background: var(--bg);
       border: 1px solid var(--border);
@@ -100,7 +103,8 @@
       transition: border-color 0.2s;
     }
 
-    input:focus, select:focus {
+    input:focus,
+    select:focus {
       border-color: var(--accent);
     }
 
@@ -222,13 +226,18 @@
     }
   </style>
 </head>
+
 <body>
   <div class="card">
     <h1>OTP Generator</h1>
 
     <div class="tabs">
-      <button class="tab-btn active" id="tabTotp" onclick="switchMode('TOTP')">TOTP (Time-Based)</button>
-      <button class="tab-btn" id="tabHotp" onclick="switchMode('HOTP')">HOTP (Counter-Based)</button>
+      <button class="tab-btn active" id="tabTotp" onclick="switchMode('TOTP')">
+        TOTP (Time-Based)
+      </button>
+      <button class="tab-btn" id="tabHotp" onclick="switchMode('HOTP')">
+        HOTP (Counter-Based)
+      </button>
     </div>
 
     <!-- Common Secret Config -->
@@ -237,7 +246,9 @@
       <input type="text" id="secret" value="JBSWY3DPEHPK3PXP" placeholder="e.g. JBSWY3DPEHPK3PXP" spellcheck="false" />
       <div id="secretError" class="error-msg">Invalid Base32 secret key.</div>
       <div class="secret-actions">
-        <button class="btn-sm" onclick="generateRandomSecret()">Generate Random Secret</button>
+        <button class="btn-sm" onclick="generateRandomSecret()">
+          Generate Random Secret
+        </button>
       </div>
     </div>
 
@@ -269,7 +280,7 @@
     </div>
 
     <!-- HOTP Options -->
-    <div id="hotpSection" style="display: none;">
+    <div id="hotpSection" style="display: none">
       <div class="form-group">
         <label for="counter">Counter Value</label>
         <div class="counter-controls">
@@ -278,7 +289,9 @@
           <button class="counter-btn" onclick="adjustCounter(1)">+</button>
         </div>
       </div>
-      <button class="primary-btn" onclick="incrementAndGenerate()">Next OTP (Increment Counter)</button>
+      <button class="primary-btn" onclick="incrementAndGenerate()">
+        Next OTP (Increment Counter)
+      </button>
     </div>
 
     <!-- Output Box -->
@@ -292,18 +305,18 @@
   </div>
 
   <script>
-    let currentMode = 'TOTP';
+    let currentMode = "TOTP";
     let timerInterval = null;
 
     // Base32 Decoder (RFC 4648)
     function base32ToUint8Array(base32) {
-      const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-      const clean = base32.replace(/[\s=-]/g, '').toUpperCase();
-      let bits = '';
+      const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+      const clean = base32.replace(/[\s=-]/g, "").toUpperCase();
+      let bits = "";
       for (let i = 0; i < clean.length; i++) {
         const val = alphabet.indexOf(clean[i]);
-        if (val === -1) throw new Error('Invalid character in Base32 string');
-        bits += val.toString(2).padStart(5, '0');
+        if (val === -1) throw new Error("Invalid character in Base32 string");
+        bits += val.toString(2).padStart(5, "0");
       }
       const bytes = [];
       for (let i = 0; i + 8 <= bits.length; i += 8) {
@@ -323,14 +336,18 @@
 
       // Web Crypto HMAC
       const cryptoKey = await window.crypto.subtle.importKey(
-        'raw',
+        "raw",
         keyBytes,
-        { name: 'HMAC', hash: { name: hashAlgo } },
+        { name: "HMAC", hash: { name: hashAlgo } },
         false,
-        ['sign']
+        ["sign"],
       );
 
-      const signature = await window.crypto.subtle.sign('HMAC', cryptoKey, counterBuffer);
+      const signature = await window.crypto.subtle.sign(
+        "HMAC",
+        cryptoKey,
+        counterBuffer,
+      );
       const hash = new Uint8Array(signature);
 
       // Dynamic Truncation
@@ -341,56 +358,65 @@
         ((hash[offset + 2] & 0xff) << 8) |
         (hash[offset + 3] & 0xff);
 
-      const otp = (binary >>> 0) % (10 ** digits);
-      return otp.toString().padStart(digits, '0');
+      const otp = (binary >>> 0) % 10 ** digits;
+      return otp.toString().padStart(digits, "0");
     }
 
     // Format code with a middle space for readability
     function formatCode(code) {
       const mid = Math.ceil(code.length / 2);
-      return code.slice(0, mid) + ' ' + code.slice(mid);
+      return code.slice(0, mid) + " " + code.slice(mid);
     }
 
     async function renderCode() {
-      const secret = document.getElementById('secret').value.trim();
-      const digits = parseInt(document.getElementById('digits').value, 10);
-      const algorithm = document.getElementById('algorithm').value;
-      const errorEl = document.getElementById('secretError');
-      const displayEl = document.getElementById('otpDisplay');
+      const secret = document.getElementById("secret").value.trim();
+      const digits = parseInt(document.getElementById("digits").value, 10);
+      const algorithm = document.getElementById("algorithm").value;
+      const errorEl = document.getElementById("secretError");
+      const displayEl = document.getElementById("otpDisplay");
 
       try {
-        errorEl.style.display = 'none';
-        let code = '';
+        errorEl.style.display = "none";
+        let code = "";
 
-        if (currentMode === 'TOTP') {
-          const period = parseInt(document.getElementById('period').value, 10) || 30;
+        if (currentMode === "TOTP") {
+          const period =
+            parseInt(document.getElementById("period").value, 10) || 30;
           const epoch = Math.floor(Date.now() / 1000);
           const counter = Math.floor(epoch / period);
           code = await calculateHOTP(secret, counter, digits, algorithm);
         } else {
-          const counter = parseInt(document.getElementById('counter').value, 10) || 0;
+          const counter =
+            parseInt(document.getElementById("counter").value, 10) || 0;
           code = await calculateHOTP(secret, counter, digits, algorithm);
         }
 
         displayEl.textContent = formatCode(code);
       } catch (err) {
-        errorEl.style.display = 'block';
-        displayEl.textContent = '------';
+        errorEl.style.display = "block";
+        displayEl.textContent = "------";
       }
     }
 
     function switchMode(mode) {
       currentMode = mode;
-      document.getElementById('tabTotp').classList.toggle('active', mode === 'TOTP');
-      document.getElementById('tabHotp').classList.toggle('active', mode === 'HOTP');
-      document.getElementById('totpSection').style.display = mode === 'TOTP' ? 'block' : 'none';
-      document.getElementById('hotpSection').style.display = mode === 'HOTP' ? 'block' : 'none';
-      document.getElementById('progressContainer').style.display = mode === 'TOTP' ? 'block' : 'none';
+      document
+        .getElementById("tabTotp")
+        .classList.toggle("active", mode === "TOTP");
+      document
+        .getElementById("tabHotp")
+        .classList.toggle("active", mode === "HOTP");
+      document.getElementById("totpSection").style.display =
+        mode === "TOTP" ? "block" : "none";
+      document.getElementById("hotpSection").style.display =
+        mode === "HOTP" ? "block" : "none";
+      document.getElementById("progressContainer").style.display =
+        mode === "TOTP" ? "block" : "none";
       renderCode();
     }
 
     function adjustCounter(delta) {
-      const input = document.getElementById('counter');
+      const input = document.getElementById("counter");
       const val = Math.max(0, (parseInt(input.value, 10) || 0) + delta);
       input.value = val;
       renderCode();
@@ -401,52 +427,56 @@
     }
 
     function generateRandomSecret() {
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
       const array = new Uint8Array(16);
       window.crypto.getRandomValues(array);
-      let secret = '';
+      let secret = "";
       for (let i = 0; i < 16; i++) {
         secret += chars[array[i] % chars.length];
       }
-      document.getElementById('secret').value = secret;
+      document.getElementById("secret").value = secret;
       renderCode();
     }
 
     function copyCode() {
-      const raw = document.getElementById('otpDisplay').textContent.replace(/\s+/g, '');
-      if (!raw || raw.includes('-')) return;
+      const raw = document
+        .getElementById("otpDisplay")
+        .textContent.replace(/\s+/g, "");
+      if (!raw || raw.includes("-")) return;
 
       navigator.clipboard.writeText(raw).then(() => {
-        const hint = document.getElementById('copyHint');
-        hint.textContent = 'Copied to clipboard!';
-        hint.style.color = 'var(--success)';
+        const hint = document.getElementById("copyHint");
+        hint.textContent = "Copied to clipboard!";
+        hint.style.color = "var(--success)";
         setTimeout(() => {
-          hint.textContent = 'Click to copy';
-          hint.style.color = 'var(--text-muted)';
+          hint.textContent = "Click to copy";
+          hint.style.color = "var(--text-muted)";
         }, 1500);
       });
     }
 
     function updateTotpProgress() {
-      if (currentMode !== 'TOTP') return;
-      const period = parseInt(document.getElementById('period').value, 10) || 30;
+      if (currentMode !== "TOTP") return;
+      const period =
+        parseInt(document.getElementById("period").value, 10) || 30;
       const epoch = Math.floor(Date.now() / 1000);
       const remaining = period - (epoch % period);
       const percent = (remaining / period) * 100;
 
-      const bar = document.getElementById('progressBar');
-      bar.style.width = percent + '%';
+      const bar = document.getElementById("progressBar");
+      bar.style.width = percent + "%";
 
       if (remaining === period || remaining === 1) {
         renderCode();
       }
     }
 
-    document.getElementById('secret').addEventListener('input', renderCode);
+    document.getElementById("secret").addEventListener("input", renderCode);
 
     // Initial setup
     renderCode();
     timerInterval = setInterval(updateTotpProgress, 1000);
   </script>
 </body>
+
 </html>
